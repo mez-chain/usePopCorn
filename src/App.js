@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import NavBar from "./components/navbar";
 import Search from "./components/search";
 import Results from "./components/results";
@@ -7,6 +7,9 @@ import Box from "./components/box";
 import Summary from "./components/summary";
 import MovieInList from "./components/movie-in-list";
 import WatchedMovie from "./components/watched-movie";
+import Loader from "./components/loader";
+import ErrorMessage from "./components/error-message";
+import MovieDetails from "./components/movie-details";
 
 const tempMovieData = [
   {
@@ -57,35 +60,98 @@ const tempWatchedData = [
 
 const average = (arr) =>
   arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
+const KEY = 37397587;
 
 export default function App() {
-  const [movies, setMovies] = useState(tempMovieData);
-  const [watched, setWatched] = useState(tempWatchedData);
+  const [query, setQuery] = useState("");
+  const [movies, setMovies] = useState([]);
+  const [watched, setWatched] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
 
   const avgImdbRating = average(watched.map((movie) => movie.imdbRating));
   const avgUserRating = average(watched.map((movie) => movie.userRating));
   const avgRuntime = average(watched.map((movie) => movie.runtime));
 
+  function handleSelectedMovie(id) {
+    setSelectedId(selectedId === id ? null : id);
+  }
+
+  function handleCloseMovie() {
+    setSelectedId(null);
+  }
+
+  useEffect(() => {
+    async function fetchMovies() {
+      try {
+        setIsLoading(true);
+        setError("");
+
+        const res = await fetch(
+          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`
+        );
+
+        if (!res.ok) throw new Error("Error occured during movies fetching !");
+
+        const data = await res.json();
+
+        if (data.Response === "False") throw new Error("Movie not found!");
+
+        setMovies(data.Search);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (query.length <= 3) {
+      setError("");
+      setMovies([]);
+      return;
+    }
+    fetchMovies();
+  }, [query]);
+
   return (
     <>
       <NavBar>
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <Results movies={movies} />
       </NavBar>
 
       <Main>
         <Box>
-          <MovieInList movies={movies} />
+          {/* {isLoading ? <Loader /> : <MovieInList movies={movies} />} */}
+          {!isLoading && !error && (
+            <MovieInList
+              onSelectedMovie={handleSelectedMovie}
+              movies={movies}
+            />
+          )}
+          {isLoading && <Loader />}
+          {error && <ErrorMessage message={error} />}
         </Box>
 
         <Box>
-          <Summary
-            watched={watched}
-            avgImdbRating={avgImdbRating}
-            avgUserRating={avgUserRating}
-            avgRuntime={avgRuntime}
-          />
-          <WatchedMovie watched={watched} />
+          {selectedId ? (
+            <MovieDetails
+              selectedId={selectedId}
+              onCloseMovie={handleCloseMovie}
+              KEY={KEY}
+            />
+          ) : (
+            <>
+              <Summary
+                watched={watched}
+                avgImdbRating={avgImdbRating}
+                avgUserRating={avgUserRating}
+                avgRuntime={avgRuntime}
+              />
+              <WatchedMovie watched={watched} />
+            </>
+          )}
         </Box>
       </Main>
     </>
