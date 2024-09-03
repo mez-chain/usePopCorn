@@ -14,8 +14,10 @@ export default function StarRating({
   maxRating = 5,
   color = "#fcc419",
   size = 48,
+  userRating,
+  onUserRating,
+  inWatched,
 }) {
-  const [rating, setRating] = useState(0);
   const [tempRating, setTempRating] = useState(0);
   const textStyle = {
     lineHeight: "1",
@@ -30,25 +32,26 @@ export default function StarRating({
         {Array.from({ length: maxRating }, (_, i) => (
           <Star
             key={i}
-            onRate={() => setRating(i + 1)}
-            onHoverIn={() => setTempRating(i + 1)}
-            onHoverOut={() => setTempRating(0)}
-            full={tempRating ? tempRating >= i + 1 : rating >= i + 1}
+            onRate={() => (inWatched.length ? null : onUserRating(i + 1))}
+            onHoverIn={() => (inWatched.length ? null : setTempRating(i + 1))}
+            onHoverOut={() => (inWatched.length ? null : setTempRating(0))}
+            full={tempRating ? tempRating >= i + 1 : userRating >= i + 1}
             color={color}
             size={size}
+            inWatched={inWatched}
           />
         ))}
       </div>
-      <p style={textStyle}>{tempRating || rating || ""}</p>
+      <p style={textStyle}>{tempRating || userRating || ""}</p>
     </div>
   );
 }
 
-function Star({ onRate, onHoverIn, onHoverOut, full, color, size }) {
+function Star({ onRate, onHoverIn, onHoverOut, full, color, size, inWatched }) {
   const starStyle = {
     height: `${size}px`,
     width: `${size}px`,
-    cursor: "pointer",
+    cursor: `${inWatched.length ? "" : "pointer"}`,
     display: "block",
   };
 
