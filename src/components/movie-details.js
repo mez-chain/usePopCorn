@@ -1,17 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import StarRating from "./starRating";
 import Loader from "./loader";
+import { useKey } from "./useKey";
+
+const KEY = 37397587;
 
 export default function MovieDetails({
   selectedId,
   onCloseMovie,
-  KEY,
   onAddWatched,
   inWatched,
 }) {
   const [movie, setMovie] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState();
+
+  const countRef = useRef(0);
+
+  useEffect(() => {
+    if (userRating) countRef.current++;
+  }, [userRating]);
 
   const {
     Title: title,
@@ -35,6 +43,7 @@ export default function MovieDetails({
       year,
       imdbRating,
       userRating,
+      counterForDecision: countRef.current,
     };
     onAddWatched(newWatchedMovie);
     onCloseMovie();
@@ -49,11 +58,21 @@ export default function MovieDetails({
       const data = await res.json();
       setMovie(data);
       setIsLoading(false);
-      console.log(data);
     }
     fetchSelectedMovie();
     setUserRating(null);
   }, [selectedId]);
+
+  useEffect(() => {
+    if (!title) return;
+    document.title = `Movie | ${title}`;
+
+    return function () {
+      document.title = "usePopcorn";
+    };
+  }, [title]);
+
+  useKey("Escape", onCloseMovie);
 
   return (
     <div className="details">
